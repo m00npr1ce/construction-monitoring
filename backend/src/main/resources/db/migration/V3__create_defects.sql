@@ -9,7 +9,7 @@ CREATE TABLE defects (
     status defect_status NOT NULL DEFAULT 'NEW',
     assignee_id BIGINT,
     project_id BIGINT,
-    due_date DATE,
+    due_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     CONSTRAINT fk_defect_assignee FOREIGN KEY (assignee_id) REFERENCES users(id),
