@@ -17,9 +17,11 @@ public class Defect {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(32)")
     private Priority priority = Priority.MEDIUM;
 
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(32)")
     private DefectStatus status = DefectStatus.NEW;
 
     private Long assigneeId;
