@@ -2,70 +2,53 @@ package com.systemcontrol.backend.controller;
 
 import com.systemcontrol.backend.dto.ProjectRequest;
 import com.systemcontrol.backend.model.Project;
-import com.systemcontrol.backend.model.User;
-import com.systemcontrol.backend.repository.ProjectRepository;
-import com.systemcontrol.backend.repository.UserRepository;
+import com.systemcontrol.backend.service.ProjectService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/projects")
 public class ProjectController {
+    private final ProjectService projectService;
 
-    private final ProjectRepository projectRepository;
-    private final UserRepository userRepository;
-
-    public ProjectController(ProjectRepository projectRepository, UserRepository userRepository) {
-        this.projectRepository = projectRepository;
-        this.userRepository = userRepository;
+    public ProjectController(ProjectService projectService) {
+        this.projectService = projectService;
     }
 
     @GetMapping
-    public List<Project> list() {
-        return projectRepository.findAll();
-    }
+    public List<Project> list() { return projectService.list(); }
 
     @PostMapping
     public ResponseEntity<?> create(@RequestBody ProjectRequest req) {
+        if (req.getName() == null || req.getName().isBlank()) return ResponseEntity.badRequest().body("name required");
         Project p = new Project();
-        p.setName(req.name);
-        p.setDescription(req.description);
-        p.setStartDate(req.startDate);
-        p.setEndDate(req.endDate);
-        if (req.managerId != null) {
-            Optional<User> u = userRepository.findById(req.managerId);
-            u.ifPresent(p::setManager);
-        }
-        Project saved = projectRepository.save(p);
-        return ResponseEntity.ok(saved);
+        p.setName(req.getName()); p.setDescription(req.getDescription()); p.setStartDate(req.getStartDate()); p.setEndDate(req.getEndDate());
+        Project created = projectService.create(p);
+        return ResponseEntity.created(URI.create("/api/projects/" + created.getId())).body(created);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> get(@PathVariable Long id) {
-        return projectRepository.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        Project p = projectService.get(id);
+        if (p == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(p);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody ProjectRequest req) {
-        Optional<Project> op = projectRepository.findById(id);
-        if (op.isEmpty()) return ResponseEntity.notFound().build();
-        Project p = op.get();
-        p.setName(req.name);
-        p.setDescription(req.description);
-        p.setStartDate(req.startDate);
-        p.setEndDate(req.endDate);
-        if (req.managerId != null) userRepository.findById(req.managerId).ifPresent(p::setManager);
-        projectRepository.save(p);
-        return ResponseEntity.ok(p);
+        Project exist = projectService.get(id);
+        if (exist == null) return ResponseEntity.notFound().build();
+        exist.setName(req.getName()); exist.setDescription(req.getDescription()); exist.setStartDate(req.getStartDate()); exist.setEndDate(req.getEndDate());
+        Project updated = projectService.update(id, exist);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
-        if (!projectRepository.existsById(id)) return ResponseEntity.notFound().build();
-        projectRepository.deleteById(id);
+        projectService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -10,20 +10,17 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "text")
     private String description;
 
     private LocalDate startDate;
     private LocalDate endDate;
 
-    @ManyToOne
-    @JoinColumn(name = "manager_id")
-    private User manager;
+    public Project() {}
 
-    // getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -34,6 +31,4 @@ public class Project {
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
     public LocalDate getEndDate() { return endDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    public User getManager() { return manager; }
-    public void setManager(User manager) { this.manager = manager; }
 }
