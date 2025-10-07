@@ -30,12 +30,8 @@ public class DefectController {
         d.setAssigneeId(req.assigneeId);
         d.setProjectId(req.projectId);
         d.setDueDate(req.dueDate);
-        try {
-            Defect created = defectService.create(d);
-            return ResponseEntity.created(URI.create("/api/defects/" + created.getId())).body(created);
-        } catch (org.springframework.web.server.ResponseStatusException ex) {
-            return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
-        }
+        Defect created = defectService.create(d);
+        return ResponseEntity.created(URI.create("/api/defects/" + created.getId())).body(created);
     }
 
     @GetMapping
@@ -53,4 +49,10 @@ public class DefectController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) { defectService.delete(id); return ResponseEntity.noContent().build(); }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody com.systemcontrol.backend.model.Defect req) {
+        com.systemcontrol.backend.model.Defect updated = defectService.update(id, req);
+        return ResponseEntity.ok(updated);
+    }
 }

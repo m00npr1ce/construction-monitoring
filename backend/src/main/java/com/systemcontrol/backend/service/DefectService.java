@@ -31,6 +31,25 @@ public class DefectService {
         }
         return defectRepository.save(d);
     }
+    public Defect update(Long id, Defect updated) {
+        Defect exist = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
+        if (updated.getProjectId() == null || !projectRepository.existsById(updated.getProjectId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "project not found");
+        }
+        if (updated.getAssigneeId() != null && !userRepository.existsById(updated.getAssigneeId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assignee not found");
+        }
+        // copy mutable fields
+        exist.setTitle(updated.getTitle());
+        exist.setDescription(updated.getDescription());
+        exist.setPriority(updated.getPriority());
+        exist.setStatus(updated.getStatus());
+        exist.setAssigneeId(updated.getAssigneeId());
+        exist.setProjectId(updated.getProjectId());
+        exist.setDueDate(updated.getDueDate());
+        exist.setUpdatedAt(java.time.Instant.now());
+        return defectRepository.save(exist);
+    }
     public Defect get(Long id) { return defectRepository.findById(id).orElse(null); }
     public List<Defect> listByProject(Long projectId) { return defectRepository.findByProjectId(projectId); }
     public List<Defect> listAll() { return defectRepository.findAll(); }

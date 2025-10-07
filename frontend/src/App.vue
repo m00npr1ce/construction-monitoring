@@ -1,22 +1,24 @@
 <script setup lang="ts"></script>
 
 <template>
-  <div>
-    <nav style="display:flex; gap:12px; align-items:center; margin-bottom:12px">
-      <router-link to="/">Home</router-link>
-      <router-link to="/projects">Projects</router-link>
-      <router-link to="/defects">Defects</router-link>
-      <div style="margin-left:auto">
+  <div class="app-container">
+    <nav class="app-nav-extra">
+      <router-link to="/" class="text-sky-600 font-semibold">Home</router-link>
+      <router-link to="/projects" class="text-sky-600 font-semibold">Projects</router-link>
+      <router-link to="/defects" class="text-sky-600 font-semibold">Defects</router-link>
+      <div class="ml-auto">
         <template v-if="username">
-          <span>{{ username }}</span>
-          <button @click="logout">Logout</button>
+          <span class="mr-3">{{ username }}</span>
+          <button class="btn" @click="logout">Logout</button>
         </template>
         <template v-else>
-          <router-link to="/auth">Login/Register</router-link>
+          <router-link to="/auth" class="btn-ghost">Login/Register</router-link>
         </template>
       </div>
     </nav>
-    <router-view />
+    <div class="mt-4">
+      <router-view />
+    </div>
   </div>
 </template>
 
@@ -27,15 +29,19 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { setAuthToken } from './api'
 
-const username = ref<string | null>(null)
+const username = ref<string | null>(localStorage.getItem('username'))
 const router = useRouter()
 
 async function loadMe() {
+  const token = localStorage.getItem('jwt')
+  if (!token) { username.value = null; return }
   try {
     const r = await api.get('/test/me')
     username.value = r.data.username
+    localStorage.setItem('username', username.value)
   } catch (e) {
     username.value = null
+    localStorage.removeItem('username')
   }
 }
 
@@ -43,6 +49,7 @@ function logout() {
   setAuthToken(null)
   localStorage.removeItem('jwt')
   username.value = null
+  localStorage.removeItem('username')
   router.push('/auth')
 }
 

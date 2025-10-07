@@ -60,9 +60,7 @@ public class IntegrationTest {
     // negative: creating defect with non-existent project -> 400
     String badDefectJson = "{\"title\":\"Bad\",\"description\":\"no project\",\"projectId\":999999}";
     ResponseEntity<String> badResp = restTemplate.postForEntity(baseUrl("/api/defects"), new HttpEntity<>(badDefectJson, auth), String.class);
-    // debug: print status and body to help diagnose why we're getting a 403 instead of 400
-    System.out.println("BAD DEFECT RESPONSE STATUS = " + badResp.getStatusCode());
-    System.out.println("BAD DEFECT RESPONSE BODY = " + badResp.getBody());
+    
     Assertions.assertEquals(HttpStatus.BAD_REQUEST, badResp.getStatusCode());
     }
 

@@ -19,6 +19,14 @@ async function submit() {
     const token = r.data.token
     setAuthToken(token)
     localStorage.setItem('jwt', token)
+    // fetch user info and store username so navbar updates immediately
+    try {
+      const me = await api.get('/test/me')
+      localStorage.setItem('username', me.data.username)
+      localStorage.setItem('role', (me.data.roles || []).join(','))
+    } catch (err) {
+      // ignore
+    }
     router.push('/projects')
   } catch (e) {
     alert('Error: ' + (e as any).response?.data || e)

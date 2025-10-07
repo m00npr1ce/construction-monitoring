@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* small helpers for layout */
+.app-container{ @apply max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-sm }
+.app-nav-extra{ @apply flex gap-3 items-center mb-4 bg-white/60 p-3 rounded-md }
+.btn{ @apply bg-blue-600 text-white px-3 py-1 rounded-md font-semibold }
+.btn-ghost{ @apply bg-transparent text-blue-600 border border-blue-200 px-3 py-1 rounded-md }
+.muted{ @apply text-gray-500 text-sm }
+
+body{ @apply bg-slate-50 text-slate-900 }
