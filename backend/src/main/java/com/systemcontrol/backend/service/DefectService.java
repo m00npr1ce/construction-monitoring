@@ -24,6 +24,11 @@ public class DefectService {
         this.defectHistoryService = defectHistoryService;
     }
 
+    private static String clean(String s) {
+        if (s == null) return null;
+        return org.jsoup.Jsoup.clean(s, org.jsoup.safety.Safelist.basic());
+    }
+
     public Defect create(Defect d) {
         if (d.getProjectId() == null || !projectRepository.existsById(d.getProjectId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "project not found");
@@ -31,6 +36,8 @@ public class DefectService {
         if (d.getAssigneeId() != null && !userRepository.existsById(d.getAssigneeId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assignee not found");
         }
+        d.setTitle(clean(d.getTitle()));
+        d.setDescription(clean(d.getDescription()));
         Defect saved = defectRepository.save(d);
         // Record creation in history
         defectHistoryService.recordChange(saved.getId(), d.getAssigneeId() != null ? d.getAssigneeId() : 0L, "CREATED", null, null, "CREATED");
@@ -59,9 +66,9 @@ public class DefectService {
             defectHistoryService.recordChange(id, updated.getAssigneeId() != null ? updated.getAssigneeId() : 0L, "assignee", exist.getAssigneeId() != null ? exist.getAssigneeId().toString() : null, updated.getAssigneeId() != null ? updated.getAssigneeId().toString() : null, "ASSIGNED");
         }
         
-        // copy mutable fields
-        exist.setTitle(updated.getTitle());
-        exist.setDescription(updated.getDescription());
+        // copy mutable fields (with sanitization)
+        exist.setTitle(clean(updated.getTitle()));
+        exist.setDescription(clean(updated.getDescription()));
         exist.setPriority(updated.getPriority());
         exist.setStatus(updated.getStatus());
         exist.setAssigneeId(updated.getAssigneeId());

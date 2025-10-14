@@ -213,6 +213,60 @@ public class ReportController {
         return ResponseEntity.ok(analytics);
     }
     
+    @GetMapping(value = "/defects/export.csv", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> exportDefectsCsv(@RequestParam(required = false) Long projectId) {
+        List<Defect> defects = projectId != null ? defectService.listByProject(projectId) : defectService.listAll();
+        StringBuilder sb = new StringBuilder();
+        sb.append("id,title,description,priority,status,assigneeId,projectId,dueDate,createdAt,updatedAt\n");
+        for (Defect d : defects) {
+            sb.append(nullToEmpty(d.getId()))
+              .append(',').append(csv(d.getTitle()))
+              .append(',').append(csv(d.getDescription()))
+              .append(',').append(csv(d.getPriority() != null ? d.getPriority().name() : null))
+              .append(',').append(csv(d.getStatus() != null ? d.getStatus().name() : null))
+              .append(',').append(nullToEmpty(d.getAssigneeId()))
+              .append(',').append(nullToEmpty(d.getProjectId()))
+              .append(',').append(csv(d.getDueDate() != null ? d.getDueDate().toString() : null))
+              .append(',').append(csv(d.getCreatedAt() != null ? d.getCreatedAt().toString() : null))
+              .append(',').append(csv(d.getUpdatedAt() != null ? d.getUpdatedAt().toString() : null))
+              .append('\n');
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=defects.csv");
+        return ResponseEntity.ok().headers(headers).body(sb.toString());
+    }
+
+    @GetMapping(value = "/projects/export.csv", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> exportProjectsCsv() {
+        var projects = projectService.listAll();
+        StringBuilder sb = new StringBuilder();
+        sb.append("id,name,description,startDate,endDate\n");
+        for (var p : projects) {
+            sb.append(nullToEmpty(p.getId()))
+              .append(',').append(csv(p.getName()))
+              .append(',').append(csv(p.getDescription()))
+              .append(',').append(csv(p.getStartDate() != null ? p.getStartDate().toString() : null))
+              .append(',').append(csv(p.getEndDate() != null ? p.getEndDate().toString() : null))
+              .append('\n');
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=projects.csv");
+        return ResponseEntity.ok().headers(headers).body(sb.toString());
+    }
+
+    private static String nullToEmpty(Object v) {
+        return v == null ? "" : v.toString();
+    }
+
+    private static String csv(String v) {
+        if (v == null) return "";
+        String escaped = v.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\n") || escaped.contains("\r") || escaped.contains("\"")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
+    }
+
     private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();

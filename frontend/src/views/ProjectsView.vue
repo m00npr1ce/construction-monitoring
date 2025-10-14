@@ -3,6 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import api from '../api'
 
 const projects = ref<any[]>([])
+const searchQuery = ref('')
+const sortKey = ref<'name'|'startDate'|'endDate'|'id'>('id')
+const sortDir = ref<'asc'|'desc'>('asc')
 const name = ref('')
 const description = ref('')
 const startDate = ref('')
@@ -65,6 +68,25 @@ const canManageProjects = computed(() => {
   return role.includes('ROLE_MANAGER') || role.includes('ROLE_ADMIN')
 })
 
+const displayedProjects = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  let list = projects.value
+  if (q) {
+    list = list.filter((p: any) =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q)
+    )
+  }
+  const key = sortKey.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return [...list].sort((a: any, b: any) => {
+    const av = a[key] ?? ''
+    const bv = b[key] ?? ''
+    if (av === bv) return 0
+    return (av > bv ? 1 : -1) * dir
+  })
+})
+
 function viewDetails(project: any) {
   console.log('viewDetails clicked', project)
   selectedProject.value = project
@@ -105,7 +127,23 @@ async function saveEdit() {
 
 <template>
   <div>
-    <h2 class="text-xl font-semibold mb-4">Управление проектами</h2>
+    <h2 class="text-xl font-semibold mb-2">Управление проектами</h2>
+    <div class="mb-4 flex flex-col md:flex-row gap-2 md:items-center">
+      <input v-model="searchQuery" placeholder="Поиск по названию или описанию" class="border p-2 rounded w-full md:w-1/2" />
+      <div class="flex gap-2 items-center">
+        <label class="text-sm text-gray-600">Сортировка:</label>
+        <select v-model="sortKey" class="border p-2 rounded">
+          <option value="id">ID</option>
+          <option value="name">Название</option>
+          <option value="startDate">Дата начала</option>
+          <option value="endDate">Дата окончания</option>
+        </select>
+        <select v-model="sortDir" class="border p-2 rounded">
+          <option value="asc">По возрастанию</option>
+          <option value="desc">По убыванию</option>
+        </select>
+      </div>
+    </div>
     
     <!-- Create Project Form -->
     <div class="mb-6 p-4 bg-blue-50 rounded-lg">
@@ -141,7 +179,7 @@ async function saveEdit() {
         Проекты не найдены
       </div>
       <div v-else>
-        <div v-for="p in projects" :key="p.id" class="p-4 border rounded-lg bg-white shadow-sm">
+        <div v-for="p in displayedProjects" :key="p.id" class="p-4 border rounded-lg bg-white shadow-sm">
           <div class="flex justify-between items-start">
             <div>
               <div class="font-semibold text-lg">#{{ p.id }} — {{ p.name }}</div>

@@ -5,6 +5,11 @@ import api from '../api'
 const defects = ref<any[]>([])
 const projects = ref<any[]>([])
 const users = ref<any[]>([])
+const expandedId = ref<number | null>(null)
+const comments = ref<Record<number, any[]>>({})
+const newComment = ref<Record<number, string>>({})
+const attachments = ref<Record<number, any[]>>({})
+const uploading = ref<Record<number, boolean>>({})
 
 const title = ref('')
 const description = ref('')
@@ -34,21 +39,19 @@ const isManager = computed(() => {
   return role.includes('ROLE_MANAGER')
 })
 
+const query = ref('')
 const filteredDefects = computed(() => {
   let filtered = defects.value
-  
-  if (selectedProject.value) {
-    filtered = filtered.filter(d => d.projectId === selectedProject.value)
+  if (selectedProject.value) filtered = filtered.filter(d => d.projectId === selectedProject.value)
+  if (statusFilter.value !== 'ALL') filtered = filtered.filter(d => d.status === statusFilter.value)
+  if (priorityFilter.value !== 'ALL') filtered = filtered.filter(d => d.priority === priorityFilter.value)
+  const q = query.value.trim().toLowerCase()
+  if (q) {
+    filtered = filtered.filter(d =>
+      (d.title || '').toLowerCase().includes(q) ||
+      (d.description || '').toLowerCase().includes(q)
+    )
   }
-  
-  if (statusFilter.value !== 'ALL') {
-    filtered = filtered.filter(d => d.status === statusFilter.value)
-  }
-  
-  if (priorityFilter.value !== 'ALL') {
-    filtered = filtered.filter(d => d.priority === priorityFilter.value)
-  }
-  
   return filtered
 })
 
@@ -123,6 +126,82 @@ async function createDefect() {
   }
 }
 
+async function toggleExpand(defectId: number) {
+  expandedId.value = expandedId.value === defectId ? null : defectId
+  if (expandedId.value === defectId) {
+    await Promise.all([loadComments(defectId), loadAttachments(defectId)])
+  }
+}
+
+async function loadComments(defectId: number) {
+  try {
+    const r = await api.get(`/comments/defect/${defectId}`)
+    comments.value[defectId] = r.data || []
+  } catch (e) {
+    comments.value[defectId] = []
+  }
+}
+
+async function addComment(defectId: number) {
+  const content = (newComment.value[defectId] || '').trim()
+  if (!content) return
+  try {
+    await api.post('/comments', { content, defectId })
+    newComment.value[defectId] = ''
+    await loadComments(defectId)
+  } catch (e) { /* ignore */ }
+}
+
+async function deleteComment(defectId: number, commentId: number) {
+  try {
+    await api.delete(`/comments/${commentId}`)
+    await loadComments(defectId)
+  } catch (e) { /* ignore */ }
+}
+
+async function loadAttachments(defectId: number) {
+  try {
+    const r = await api.get(`/attachments/defect/${defectId}`)
+    attachments.value[defectId] = r.data || []
+  } catch (e) {
+    attachments.value[defectId] = []
+  }
+}
+
+async function uploadAttachment(defectId: number, ev: Event) {
+  const input = ev.target as HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+  const file = input.files[0]
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    uploading.value[defectId] = true
+    await api.post(`/attachments/upload/${defectId}`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    await loadAttachments(defectId)
+  } finally {
+    uploading.value[defectId] = false
+    input.value = ''
+  }
+}
+
+function downloadAttachment(attId: number, name: string) {
+  api.get(`/attachments/${attId}/download`, { responseType: 'blob' }).then(res => {
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = name
+    a.click()
+    window.URL.revokeObjectURL(url)
+  })
+}
+
+async function deleteAttachment(attId: number, defectId: number) {
+  try {
+    await api.delete(`/attachments/${attId}`)
+    await loadAttachments(defectId)
+  } catch (e) { /* ignore */ }
+}
+
 async function updateDefectStatus(defectId: number, newStatus: string) {
   try {
     const defect = defects.value.find(d => d.id === defectId)
@@ -187,6 +266,7 @@ onMounted(load)
     <!-- Filters -->
     <div class="mb-4 p-4 bg-gray-50 rounded-lg">
       <h3 class="font-semibold mb-2">Фильтры</h3>
+      <input v-model="query" placeholder="Поиск по заголовку/описанию" class="border p-2 rounded w-full mb-3" />
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium mb-1">Проект</label>
@@ -304,6 +384,9 @@ onMounted(load)
               <span :class="getStatusClass(d.status)" class="px-2 py-1 rounded text-xs font-medium">
                 {{ d.status }}
               </span>
+              <button class="text-blue-600 text-sm underline" @click="toggleExpand(d.id)">
+                {{ expandedId === d.id ? 'Свернуть' : 'Подробнее' }}
+              </button>
             </div>
           </div>
           <div v-if="d.description" class="text-gray-700 mb-2">{{ d.description }}</div>
@@ -311,6 +394,53 @@ onMounted(load)
             Создан: {{ new Date(d.createdAt).toLocaleString() }} |
             Обновлен: {{ new Date(d.updatedAt).toLocaleString() }}
             <span v-if="d.dueDate">| Срок: {{ new Date(d.dueDate).toLocaleString() }}</span>
+          </div>
+
+          <div v-if="expandedId === d.id" class="mt-4 border-t pt-3">
+            <div class="grid md:grid-cols-2 gap-4">
+              <!-- Comments -->
+              <div>
+                <h4 class="font-semibold mb-2">Комментарии</h4>
+                <div class="space-y-2 max-h-56 overflow-auto bg-gray-50 p-2 rounded">
+                  <div v-for="c in (comments[d.id]||[])" :key="c.id" class="flex justify-between bg-white p-2 rounded border">
+                    <div>
+                      <div class="text-sm">{{ c.content }}</div>
+                      <div class="text-xs text-gray-500">Автор: {{ c.authorId }} | {{ new Date(c.createdAt).toLocaleString?.() || '' }}</div>
+                    </div>
+                    <button class="text-red-600 text-xs" @click="deleteComment(d.id, c.id)">Удалить</button>
+                  </div>
+                  <div v-if="!(comments[d.id]||[]).length" class="text-sm text-gray-500">Нет комментариев</div>
+                </div>
+                <div class="mt-2 flex gap-2">
+                  <input v-model="newComment[d.id]" placeholder="Добавить комментарий" class="border p-2 rounded w-full" />
+                  <button class="bg-blue-600 text-white px-3 rounded" @click="addComment(d.id)">Добавить</button>
+                </div>
+              </div>
+
+              <!-- Attachments -->
+              <div>
+                <h4 class="font-semibold mb-2">Вложения</h4>
+                <div class="space-y-2 max-h-56 overflow-auto bg-gray-50 p-2 rounded">
+                  <div v-for="a in (attachments[d.id]||[])" :key="a.id" class="flex justify-between bg-white p-2 rounded border">
+                    <div class="truncate">
+                      <div class="text-sm truncate">{{ a.originalFileName }}</div>
+                      <div class="text-xs text-gray-500">{{ a.contentType }} • {{ Math.round((a.size||0)/1024) }} KB</div>
+                    </div>
+                    <div class="flex gap-2 items-center text-xs">
+                      <button class="text-blue-600" @click="downloadAttachment(a.id, a.originalFileName)">Скачать</button>
+                      <button class="text-red-600" @click="deleteAttachment(a.id, d.id)">Удалить</button>
+                    </div>
+                  </div>
+                  <div v-if="!(attachments[d.id]||[]).length" class="text-sm text-gray-500">Нет вложений</div>
+                </div>
+                <div class="mt-2">
+                  <label class="inline-flex items-center gap-2 text-sm">
+                    <input type="file" :disabled="uploading[d.id]" @change="(e:any)=>uploadAttachment(d.id,e)" />
+                    <span v-if="uploading[d.id]">Загрузка...</span>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
