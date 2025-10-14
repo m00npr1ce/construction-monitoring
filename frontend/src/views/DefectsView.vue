@@ -180,40 +180,40 @@ onMounted(load)
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Defects Management</h2>
-      <button @click="exportReport" class="btn bg-green-600 text-white">Export Report</button>
+      <h2 class="text-xl font-semibold">Управление дефектами</h2>
+      <button @click="exportReport" class="btn bg-green-600 text-white">Экспорт отчета</button>
     </div>
 
     <!-- Filters -->
     <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-      <h3 class="font-semibold mb-2">Filters</h3>
+      <h3 class="font-semibold mb-2">Фильтры</h3>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1">Project</label>
+          <label class="block text-sm font-medium mb-1">Проект</label>
           <select v-model.number="selectedProject" class="border p-2 rounded w-full">
-            <option :value="null">All Projects</option>
+            <option :value="null">Все проекты</option>
             <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Status</label>
+          <label class="block text-sm font-medium mb-1">Статус</label>
           <select v-model="statusFilter" class="border p-2 rounded w-full">
-            <option value="ALL">All Statuses</option>
-            <option value="NEW">New</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="IN_REVIEW">In Review</option>
-            <option value="CLOSED">Closed</option>
-            <option value="CANCELLED">Cancelled</option>
+            <option value="ALL">Все статусы</option>
+            <option value="NEW">Новый</option>
+            <option value="IN_PROGRESS">В работе</option>
+            <option value="IN_REVIEW">На проверке</option>
+            <option value="CLOSED">Закрыт</option>
+            <option value="CANCELLED">Отменен</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Priority</label>
+          <label class="block text-sm font-medium mb-1">Приоритет</label>
           <select v-model="priorityFilter" class="border p-2 rounded w-full">
-            <option value="ALL">All Priorities</option>
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="CRITICAL">Critical</option>
+            <option value="ALL">Все приоритеты</option>
+            <option value="LOW">Низкий</option>
+            <option value="MEDIUM">Средний</option>
+            <option value="HIGH">Высокий</option>
+            <option value="CRITICAL">Критический</option>
           </select>
         </div>
       </div>
@@ -221,55 +221,55 @@ onMounted(load)
 
     <!-- Create Defect Form -->
     <div class="mb-6 p-4 bg-blue-50 rounded-lg">
-      <h3 class="font-semibold mb-3">Create New Defect</h3>
+      <h3 class="font-semibold mb-3">Создать новый дефект</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1">Title *</label>
-          <input v-model="title" placeholder="Defect title" class="border p-2 rounded w-full" />
+          <label class="block text-sm font-medium mb-1">Заголовок *</label>
+          <input v-model="title" placeholder="Название дефекта" class="border p-2 rounded w-full" />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Project *</label>
+          <label class="block text-sm font-medium mb-1">Проект *</label>
           <select v-model.number="projectId" class="border p-2 rounded w-full">
-            <option value="" disabled>Select project</option>
+            <option value="" disabled>Выберите проект</option>
             <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Description</label>
-          <textarea v-model="description" placeholder="Defect description" class="border p-2 rounded w-full" rows="3"></textarea>
+          <label class="block text-sm font-medium mb-1">Описание</label>
+          <textarea v-model="description" placeholder="Описание дефекта" class="border p-2 rounded w-full" rows="3"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Assignee</label>
+          <label class="block text-sm font-medium mb-1">Исполнитель</label>
           <select v-model.number="assigneeId" class="border p-2 rounded w-full">
-            <option value="">No assignee</option>
+            <option value="">Без исполнителя</option>
             <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }} ({{ u.role }})</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Priority</label>
+          <label class="block text-sm font-medium mb-1">Приоритет</label>
           <select v-model="priority" class="border p-2 rounded w-full">
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="CRITICAL">Critical</option>
+            <option value="LOW">Низкий</option>
+            <option value="MEDIUM">Средний</option>
+            <option value="HIGH">Высокий</option>
+            <option value="CRITICAL">Критический</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Status</label>
+          <label class="block text-sm font-medium mb-1">Статус</label>
           <select v-model="status" class="border p-2 rounded w-full">
-            <option value="NEW">New</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="IN_REVIEW">In Review</option>
-            <option value="CLOSED">Closed</option>
-            <option value="CANCELLED">Cancelled</option>
+            <option value="NEW">Новый</option>
+            <option value="IN_PROGRESS">В работе</option>
+            <option value="IN_REVIEW">На проверке</option>
+            <option value="CLOSED">Закрыт</option>
+            <option value="CANCELLED">Отменен</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Due Date</label>
+          <label class="block text-sm font-medium mb-1">Срок</label>
           <input v-model="dueDate" type="datetime-local" class="border p-2 rounded w-full" />
         </div>
         <div class="flex items-end">
-          <button @click="createDefect" class="btn bg-blue-600 text-white w-full" v-if="canCreateDefects">Create Defect</button>
+          <button @click="createDefect" class="btn bg-blue-600 text-white w-full" v-if="canCreateDefects">Создать дефект</button>
         </div>
       </div>
       <div v-if="error" class="text-red-600 mt-2">{{ error }}</div>
@@ -277,9 +277,9 @@ onMounted(load)
 
     <!-- Defects List -->
     <div class="space-y-3">
-      <div v-if="loading" class="text-center py-4">Loading...</div>
+      <div v-if="loading" class="text-center py-4">Загрузка...</div>
       <div v-else-if="filteredDefects.length === 0" class="text-center py-8 text-gray-500">
-        No defects found
+        Дефекты не найдены
       </div>
       <div v-else>
         <div v-for="d in filteredDefects" :key="d.id" class="p-4 border rounded-lg bg-white shadow-sm">
@@ -287,19 +287,19 @@ onMounted(load)
             <div>
               <div class="font-semibold text-lg">#{{ d.id }} — {{ d.title }}</div>
               <div class="text-sm text-gray-600">
-                Project: {{ d.projectName || d.projectId }} | 
-                Assignee: {{ d.assigneeName || d.assigneeId || '—' }} |
-                Priority: <span :class="getPriorityClass(d.priority)">{{ d.priority }}</span>
+                Проект: {{ d.projectName || d.projectId }} | 
+                Исполнитель: {{ d.assigneeName || d.assigneeId || '—' }} |
+                Приоритет: <span :class="getPriorityClass(d.priority)">{{ d.priority }}</span>
               </div>
             </div>
             <div class="flex items-center gap-2">
               <select :value="d.status" @change="updateDefectStatus(d.id, ($event.target as HTMLSelectElement).value)" 
                       class="border p-1 rounded text-sm">
-                <option value="NEW">New</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="IN_REVIEW">In Review</option>
-                <option value="CLOSED">Closed</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="NEW">Новый</option>
+                <option value="IN_PROGRESS">В работе</option>
+                <option value="IN_REVIEW">На проверке</option>
+                <option value="CLOSED">Закрыт</option>
+                <option value="CANCELLED">Отменен</option>
               </select>
               <span :class="getStatusClass(d.status)" class="px-2 py-1 rounded text-xs font-medium">
                 {{ d.status }}
@@ -308,9 +308,9 @@ onMounted(load)
           </div>
           <div v-if="d.description" class="text-gray-700 mb-2">{{ d.description }}</div>
           <div class="text-xs text-gray-500">
-            Created: {{ new Date(d.createdAt).toLocaleString() }} |
-            Updated: {{ new Date(d.updatedAt).toLocaleString() }}
-            <span v-if="d.dueDate">| Due: {{ new Date(d.dueDate).toLocaleString() }}</span>
+            Создан: {{ new Date(d.createdAt).toLocaleString() }} |
+            Обновлен: {{ new Date(d.updatedAt).toLocaleString() }}
+            <span v-if="d.dueDate">| Срок: {{ new Date(d.dueDate).toLocaleString() }}</span>
           </div>
         </div>
       </div>

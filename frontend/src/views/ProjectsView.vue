@@ -105,30 +105,30 @@ async function saveEdit() {
 
 <template>
   <div>
-    <h2 class="text-xl font-semibold mb-4">Projects Management</h2>
+    <h2 class="text-xl font-semibold mb-4">Управление проектами</h2>
     
     <!-- Create Project Form -->
     <div class="mb-6 p-4 bg-blue-50 rounded-lg">
-      <h3 class="font-semibold mb-3">Create New Project</h3>
+      <h3 class="font-semibold mb-3">Создать новый проект</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1">Project Name *</label>
-          <input v-model="name" placeholder="Project name" class="border p-2 rounded w-full" />
+          <label class="block text-sm font-medium mb-1">Название проекта *</label>
+          <input v-model="name" placeholder="Название проекта" class="border p-2 rounded w-full" />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Description</label>
-          <textarea v-model="description" placeholder="Project description" class="border p-2 rounded w-full" rows="3"></textarea>
+          <label class="block text-sm font-medium mb-1">Описание</label>
+          <textarea v-model="description" placeholder="Описание проекта" class="border p-2 rounded w-full" rows="3"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Start Date</label>
+          <label class="block text-sm font-medium mb-1">Дата начала</label>
           <input v-model="startDate" type="date" class="border p-2 rounded w-full" />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">End Date</label>
+          <label class="block text-sm font-medium mb-1">Дата окончания</label>
           <input v-model="endDate" type="date" class="border p-2 rounded w-full" />
         </div>
         <div class="flex items-end">
-          <button @click="createProject" class="btn bg-blue-600 text-white w-full" v-if="canManageProjects">Create Project</button>
+          <button @click="createProject" class="btn bg-blue-600 text-white w-full" v-if="canManageProjects">Создать проект</button>
         </div>
       </div>
       <div v-if="error" class="text-red-600 mt-2">{{ error }}</div>
@@ -136,9 +136,9 @@ async function saveEdit() {
 
     <!-- Projects List -->
     <div class="space-y-3">
-      <div v-if="loading" class="text-center py-4">Loading...</div>
+      <div v-if="loading" class="text-center py-4">Загрузка...</div>
       <div v-else-if="projects.length === 0" class="text-center py-8 text-gray-500">
-        No projects found
+        Проекты не найдены
       </div>
       <div v-else>
         <div v-for="p in projects" :key="p.id" class="p-4 border rounded-lg bg-white shadow-sm">
@@ -153,8 +153,8 @@ async function saveEdit() {
               </div>
             </div>
             <div class="flex gap-2">
-              <button class="btn bg-green-600 text-white text-sm" @click="viewDetails(p)">View Details</button>
-              <button class="btn bg-yellow-600 text-white text-sm" @click="openEdit(p)" v-if="canManageProjects">Edit</button>
+              <button class="btn bg-green-600 text-white text-sm" @click="viewDetails(p)">Подробнее</button>
+              <button class="btn bg-yellow-600 text-white text-sm" @click="openEdit(p)" v-if="canManageProjects">Изменить</button>
             </div>
           </div>
         </div>
@@ -165,21 +165,21 @@ async function saveEdit() {
     <div v-if="showDetails && selectedProject" class="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
       <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-5">
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-lg font-semibold">Project Details</h3>
+          <h3 class="text-lg font-semibold">Детали проекта</h3>
           <button class="btn-ghost" @click="showDetails = false">✕</button>
         </div>
         <div class="space-y-2">
           <div><span class="font-medium">ID:</span> {{ selectedProject.id }}</div>
-          <div><span class="font-medium">Name:</span> {{ selectedProject.name }}</div>
-          <div v-if="selectedProject.description"><span class="font-medium">Description:</span> {{ selectedProject.description }}</div>
+          <div><span class="font-medium">Название:</span> {{ selectedProject.name }}</div>
+          <div v-if="selectedProject.description"><span class="font-medium">Описание:</span> {{ selectedProject.description }}</div>
           <div class="text-sm text-gray-600">
-            <span v-if="selectedProject.startDate">Start: {{ new Date(selectedProject.startDate).toLocaleDateString() }}</span>
+            <span v-if="selectedProject.startDate">Начало: {{ new Date(selectedProject.startDate).toLocaleDateString() }}</span>
             <span v-if="selectedProject.startDate && selectedProject.endDate"> | </span>
-            <span v-if="selectedProject.endDate">End: {{ new Date(selectedProject.endDate).toLocaleDateString() }}</span>
+            <span v-if="selectedProject.endDate">Окончание: {{ new Date(selectedProject.endDate).toLocaleDateString() }}</span>
           </div>
         </div>
         <div class="mt-4 text-right">
-          <button class="btn btn-primary" @click="showDetails = false">Close</button>
+          <button class="btn btn-primary" @click="showDetails = false">Закрыть</button>
         </div>
       </div>
     </div>
@@ -188,32 +188,32 @@ async function saveEdit() {
     <div v-if="showEdit" class="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
       <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-5">
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-lg font-semibold">Edit Project</h3>
+          <h3 class="text-lg font-semibold">Редактирование проекта</h3>
           <button class="btn-ghost" @click="showEdit = false">✕</button>
         </div>
         <div class="grid grid-cols-1 gap-3">
           <div>
-            <label class="block text-sm font-medium mb-1">Project Name *</label>
+            <label class="block text-sm font-medium mb-1">Название проекта *</label>
             <input v-model="editForm.name" class="border p-2 rounded w-full" />
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Description</label>
+            <label class="block text-sm font-medium mb-1">Описание</label>
             <textarea v-model="editForm.description" class="border p-2 rounded w-full" rows="3"></textarea>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium mb-1">Start Date</label>
+              <label class="block text-sm font-medium mb-1">Дата начала</label>
               <input v-model="editForm.startDate" type="date" class="border p-2 rounded w-full" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">End Date</label>
+              <label class="block text-sm font-medium mb-1">Дата окончания</label>
               <input v-model="editForm.endDate" type="date" class="border p-2 rounded w-full" />
             </div>
           </div>
         </div>
         <div class="mt-4 flex justify-end gap-2">
-          <button class="btn btn-secondary" @click="showEdit = false">Cancel</button>
-          <button class="btn btn-primary" @click="saveEdit">Save</button>
+          <button class="btn btn-secondary" @click="showEdit = false">Отмена</button>
+          <button class="btn btn-primary" @click="saveEdit">Сохранить</button>
         </div>
       </div>
     </div>

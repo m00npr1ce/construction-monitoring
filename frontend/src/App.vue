@@ -57,8 +57,8 @@ onMounted(loadMe)
         <div class="flex justify-between h-16">
           <div class="flex items-center">
             <div class="flex-shrink-0 flex items-center gap-2">
-              <h1 class="text-xl font-bold text-gray-900">Construction Monitoring</h1>
-              <span v-if="isAdmin" class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 border border-red-200">ADMIN</span>
+              <h1 class="text-xl font-bold text-gray-900">Мониторинг строительства</h1>
+              <span v-if="isAdmin" class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 border border-red-200">АДМИН</span>
             </div>
             <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
               <router-link 
@@ -66,28 +66,28 @@ onMounted(loadMe)
                 class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 active-class="border-blue-500 text-gray-900"
               >
-                Home
+                Главная
               </router-link>
               <router-link 
                 to="/projects" 
                 class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 active-class="border-blue-500 text-gray-900"
               >
-                Projects
+                Проекты
               </router-link>
               <router-link 
                 to="/defects" 
                 class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 active-class="border-blue-500 text-gray-900"
               >
-                Defects
+                Дефекты
               </router-link>
               <router-link
                 to="/admin/users" 
                 class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-red-600 hover:text-red-700 hover:border-red-300"
                 active-class="border-red-500 text-red-900"
               >
-                Admin
+                Админ
               </router-link>
             </div>
           </div>
@@ -103,19 +103,19 @@ onMounted(loadMe)
                   to="/admin/users"
                   class="hidden sm:inline-flex bg-gray-100 text-red-700 border border-red-200 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200"
                 >
-                  Admin
+                  Админ
                 </router-link>
                 <router-link
                   to="/admin/users"
                   class="sm:hidden bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  Admin
+                  Админ
                 </router-link>
                 <button 
                   @click="logout"
                   class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  Logout
+                  Выйти
                 </button>
               </div>
             </template>
@@ -124,7 +124,7 @@ onMounted(loadMe)
                 to="/auth" 
                 class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
               >
-                Login/Register
+                Войти / Регистрация
               </router-link>
             </template>
           </div>

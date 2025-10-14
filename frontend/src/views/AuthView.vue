@@ -85,12 +85,12 @@ function switchMode() {
     <div class="max-w-md w-full space-y-8">
       <div>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          {{ mode === 'login' ? 'Sign in to your account' : 'Create a new account' }}
+          {{ mode === 'login' ? 'Войдите в аккаунт' : 'Создайте новый аккаунт' }}
         </h2>
         <p class="mt-2 text-center text-sm text-gray-600">
-          {{ mode === 'login' ? "Don't have an account?" : 'Already have an account?' }}
+          {{ mode === 'login' ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
           <button @click="switchMode" class="font-medium text-blue-600 hover:text-blue-500">
-            {{ mode === 'login' ? 'Sign up' : 'Sign in' }}
+            {{ mode === 'login' ? 'Зарегистрироваться' : 'Войти' }}
           </button>
         </p>
       </div>
@@ -98,38 +98,38 @@ function switchMode() {
       <form @submit.prevent="submit" class="mt-8 space-y-6">
         <div class="space-y-4">
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+            <label for="username" class="block text-sm font-medium text-gray-700">Имя пользователя</label>
             <input 
               id="username" 
               v-model="username" 
               type="text" 
               required 
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter username"
+              placeholder="Введите имя пользователя"
             />
           </div>
           
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+            <label for="password" class="block text-sm font-medium text-gray-700">Пароль</label>
             <input 
               id="password" 
               v-model="password" 
               type="password" 
               required 
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter password"
+              placeholder="Введите пароль"
             />
           </div>
           
           <div v-if="mode === 'register'">
-            <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Подтвердите пароль</label>
             <input 
               id="confirmPassword" 
               v-model="confirmPassword" 
               type="password" 
               required 
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Confirm password"
+              placeholder="Подтвердите пароль"
             />
           </div>
         </div>
@@ -144,7 +144,7 @@ function switchMode() {
             :disabled="loading"
             class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            {{ loading ? 'Processing...' : (mode === 'login' ? 'Sign in' : 'Sign up') }}
+            {{ loading ? 'Обработка...' : (mode === 'login' ? 'Войти' : 'Зарегистрироваться') }}
           </button>
         </div>
       </form>
