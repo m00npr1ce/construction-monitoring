@@ -7,6 +7,7 @@ import com.systemcontrol.backend.service.DefectService;
 import com.systemcontrol.backend.service.ProjectService;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +44,7 @@ public class ReportController {
             
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             Workbook workbook = new XSSFWorkbook();
+            log.info("Workbook created");
             Sheet sheet = workbook.createSheet("Defects Report");
             
             // Create header row
@@ -102,8 +104,11 @@ public class ReportController {
     @GetMapping("/full/export")
     public ResponseEntity<byte[]> exportFullToExcel() {
         try {
+            log.info("Starting full report export...");
             var projects = projectService.listAll();
+            log.info("Fetched {} projects", projects.size());
             var defects = defectService.listAll();
+            log.info("Fetched {} defects", defects.size());
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             Workbook workbook = new XSSFWorkbook();
@@ -117,6 +122,7 @@ public class ReportController {
                 cell.setCellValue(pHeaders[i]);
                 cell.setCellStyle(createHeaderStyle(workbook));
             }
+            log.info("Projects header created");
             for (int i = 0; i < projects.size(); i++) {
                 var prj = projects.get(i);
                 Row row = projectsSheet.createRow(i + 1);
@@ -126,7 +132,9 @@ public class ReportController {
                 row.createCell(3).setCellValue(prj.getStartDate() != null ? prj.getStartDate().toString() : "");
                 row.createCell(4).setCellValue(prj.getEndDate() != null ? prj.getEndDate().toString() : "");
             }
+            log.info("Projects rows filled: {}", projects.size());
             for (int i = 0; i < pHeaders.length; i++) projectsSheet.autoSizeColumn(i);
+            log.info("Projects autosized");
 
             // Sheet 2: Defects
             Sheet defectsSheet = workbook.createSheet("Defects");
@@ -137,6 +145,7 @@ public class ReportController {
                 cell.setCellValue(dHeaders[i]);
                 cell.setCellStyle(createHeaderStyle(workbook));
             }
+            log.info("Defects header created");
             for (int i = 0; i < defects.size(); i++) {
                 Defect defect = defects.get(i);
                 Row row = defectsSheet.createRow(i + 1);
@@ -151,22 +160,29 @@ public class ReportController {
                 row.createCell(8).setCellValue(defect.getCreatedAt() != null ? defect.getCreatedAt().toString() : "");
                 row.createCell(9).setCellValue(defect.getUpdatedAt() != null ? defect.getUpdatedAt().toString() : "");
             }
+            log.info("Defects rows filled: {}", defects.size());
             for (int i = 0; i < dHeaders.length; i++) defectsSheet.autoSizeColumn(i);
+            log.info("Defects autosized");
 
+            log.info("Writing workbook to output stream...");
             workbook.write(outputStream);
             workbook.close();
 
             byte[] bytes = outputStream.toByteArray();
+            log.info("Generated Excel file: {} bytes", bytes.length);
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
             responseHeaders.setContentDispositionFormData("attachment", "full_report.xlsx");
 
             return ResponseEntity.ok().headers(responseHeaders).body(bytes);
         } catch (IOException e) {
-            log.error("Failed to export full report", e);
+            log.error("Failed to export full report (IOException)", e);
             return ResponseEntity.internalServerError().build();
         } catch (Exception e) {
-            log.error("Unexpected error during full export", e);
+            log.error("Unexpected error during full export (Exception)", e);
+            return ResponseEntity.internalServerError().build();
+        } catch (Throwable t) {
+            log.error("Unexpected fatal error during full export (Throwable)", t);
             return ResponseEntity.internalServerError().build();
         }
     }
