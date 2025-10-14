@@ -280,13 +280,13 @@ function canMoveToNext(status: string) {
     return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
   }
   
-  // Инженер не может переводить из "На проверке"
+  // Инженер НЕ может переводить из "На проверке" (только менеджер может закрывать)
   if (role.includes('ROLE_ENGINEER')) {
     return status === 'NEW' || status === 'IN_PROGRESS'
   }
   
-  // Остальные роли следуют строгому workflow
-  return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
+  // Остальные роли не могут изменять статусы
+  return false
 }
 
 function canCancel(status: string) {

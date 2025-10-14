@@ -133,7 +133,7 @@ public class DefectService {
             return defectRepository.save(defect);
         }
         
-        // Для инженера: не может переводить из "На проверке" в "Закрыт"
+        // Для инженера: не может переводить из "На проверке" (только менеджер может закрывать)
         if ("ROLE_ENGINEER".equals(userRole) && defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.IN_REVIEW) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
                 "Инженер не может закрывать дефекты. Обратитесь к менеджеру.");
