@@ -5,6 +5,7 @@ import com.systemcontrol.backend.model.Defect;
 import com.systemcontrol.backend.model.Priority;
 import com.systemcontrol.backend.model.DefectStatus;
 import com.systemcontrol.backend.service.DefectService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +20,7 @@ public class DefectController {
     public DefectController(DefectService defectService) { this.defectService = defectService; }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody DefectRequest req) {
-        if (req.title == null || req.title.isBlank()) return ResponseEntity.badRequest().body("title required");
+    public ResponseEntity<?> create(@Valid @RequestBody DefectRequest req) {
         Defect d = new Defect();
         d.setTitle(req.title);
         d.setDescription(req.description);

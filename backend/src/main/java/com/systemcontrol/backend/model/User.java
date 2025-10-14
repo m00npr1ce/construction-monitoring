@@ -16,7 +16,7 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = true, length = 50)
     private Role role;
 
     // constructors, getters, setters

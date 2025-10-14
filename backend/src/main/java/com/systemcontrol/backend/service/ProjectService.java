@@ -15,6 +15,7 @@ public class ProjectService {
     }
 
     public List<Project> list() { return projectRepository.findAll(); }
+    public List<Project> listAll() { return projectRepository.findAll(); }
     public Project create(Project p) { return projectRepository.save(p); }
     public Project get(Long id) { return projectRepository.findById(id).orElse(null); }
     public Project update(Long id, Project p) { p.setId(id); return projectRepository.save(p); }

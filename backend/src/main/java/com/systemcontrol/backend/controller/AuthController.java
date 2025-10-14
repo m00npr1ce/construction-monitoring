@@ -10,7 +10,6 @@ import com.systemcontrol.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,13 +18,11 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public AuthController(AuthenticationManager authenticationManager, UserService userService, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthController(AuthenticationManager authenticationManager, UserService userService, JwtUtil jwtUtil) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
     }
 
@@ -35,8 +32,9 @@ public class AuthController {
         if (userService.existsByUsername(request.getUsername())) return ResponseEntity.badRequest().body("Username already exists");
         User u = new User();
         u.setUsername(request.getUsername());
-        u.setPassword(passwordEncoder.encode(request.getPassword()));
-        u.setRole(Role.ROLE_ENGINEER);
+        u.setPassword(request.getPassword()); // Will be hashed in UserService.save()
+        // По ТЗ: после регистрации роль не назначается (null). Назначение делает только админ.
+        u.setRole(null);
         userService.save(u);
         return ResponseEntity.ok("registered");
     }

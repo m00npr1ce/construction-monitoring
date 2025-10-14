@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: construction-postgres
+    environment:
+      POSTGRES_DB: construction_monitoring
+      POSTGRES_USER: construction_user
+      POSTGRES_PASSWORD: secure_password_123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U construction_user -d construction_monitoring"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: construction-backend
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/construction_monitoring
+      - SPRING_DATASOURCE_USERNAME=construction_user
+      - SPRING_DATASOURCE_PASSWORD=secure_password_123
+      - JWT_SECRET=very-strong-secret-key-for-production-use-only-change-this-in-production-256-bits
+      - FRONTEND_URL=http://localhost
+      - APP_UPLOAD_DIR=/app/uploads
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/uploads
+    # Healthcheck can be enabled if actuator is exposed
+    # healthcheck:
+    #   test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 60s
+
+  frontend:
+    build: ./frontend
+    container_name: construction-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  default:
+    name: construction-network
+

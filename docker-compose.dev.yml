@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: construction_monitoring
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    image: eclipse-temurin:21-jdk
+    working_dir: /app
+    command: bash -lc "./mvnw -q -DskipTests spring-boot:run"
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/construction_monitoring
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1234
+      FRONTEND_URL: http://localhost:5173
+      JWT_SECRET: dev-secret
+    volumes:
+      - ./backend:/app
+      - ~/.m2:/root/.m2
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -lc "npm ci && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE: http://localhost:8080/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata_dev:
+
+ 
+
+

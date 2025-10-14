@@ -15,11 +15,13 @@ public class DefectService {
     private final DefectRepository defectRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final DefectHistoryService defectHistoryService;
 
-    public DefectService(DefectRepository defectRepository, ProjectRepository projectRepository, UserRepository userRepository) {
+    public DefectService(DefectRepository defectRepository, ProjectRepository projectRepository, UserRepository userRepository, DefectHistoryService defectHistoryService) {
         this.defectRepository = defectRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.defectHistoryService = defectHistoryService;
     }
 
     public Defect create(Defect d) {
@@ -29,7 +31,10 @@ public class DefectService {
         if (d.getAssigneeId() != null && !userRepository.existsById(d.getAssigneeId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assignee not found");
         }
-        return defectRepository.save(d);
+        Defect saved = defectRepository.save(d);
+        // Record creation in history
+        defectHistoryService.recordChange(saved.getId(), d.getAssigneeId() != null ? d.getAssigneeId() : 0L, "CREATED", null, null, "CREATED");
+        return saved;
     }
     public Defect update(Long id, Defect updated) {
         Defect exist = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
@@ -39,6 +44,21 @@ public class DefectService {
         if (updated.getAssigneeId() != null && !userRepository.existsById(updated.getAssigneeId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assignee not found");
         }
+        
+        // Record changes in history
+        if (!exist.getTitle().equals(updated.getTitle())) {
+            defectHistoryService.recordChange(id, updated.getAssigneeId() != null ? updated.getAssigneeId() : 0L, "title", exist.getTitle(), updated.getTitle(), "UPDATED");
+        }
+        if (!exist.getStatus().equals(updated.getStatus())) {
+            defectHistoryService.recordChange(id, updated.getAssigneeId() != null ? updated.getAssigneeId() : 0L, "status", exist.getStatus().toString(), updated.getStatus().toString(), "STATUS_CHANGED");
+        }
+        if (!exist.getPriority().equals(updated.getPriority())) {
+            defectHistoryService.recordChange(id, updated.getAssigneeId() != null ? updated.getAssigneeId() : 0L, "priority", exist.getPriority().toString(), updated.getPriority().toString(), "UPDATED");
+        }
+        if (!java.util.Objects.equals(exist.getAssigneeId(), updated.getAssigneeId())) {
+            defectHistoryService.recordChange(id, updated.getAssigneeId() != null ? updated.getAssigneeId() : 0L, "assignee", exist.getAssigneeId() != null ? exist.getAssigneeId().toString() : null, updated.getAssigneeId() != null ? updated.getAssigneeId().toString() : null, "ASSIGNED");
+        }
+        
         // copy mutable fields
         exist.setTitle(updated.getTitle());
         exist.setDescription(updated.getDescription());

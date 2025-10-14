@@ -1,47 +1,38 @@
-<script setup lang="ts"></script>
-
-<template>
-  <div class="app-container">
-    <nav class="app-nav-extra">
-      <router-link to="/" class="text-sky-600 font-semibold">Home</router-link>
-      <router-link to="/projects" class="text-sky-600 font-semibold">Projects</router-link>
-      <router-link to="/defects" class="text-sky-600 font-semibold">Defects</router-link>
-      <div class="ml-auto">
-        <template v-if="username">
-          <span class="mr-3">{{ username }}</span>
-          <button class="btn" @click="logout">Logout</button>
-        </template>
-        <template v-else>
-          <router-link to="/auth" class="btn-ghost">Login/Register</router-link>
-        </template>
-      </div>
-    </nav>
-    <div class="mt-4">
-      <router-view />
-    </div>
-  </div>
-</template>
-
-<style scoped></style>
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { setAuthToken } from './api'
 
 const username = ref<string | null>(localStorage.getItem('username'))
+const role = ref<string | null>(localStorage.getItem('role'))
 const router = useRouter()
+
+const isAdmin = computed(() => {
+  const token = localStorage.getItem('jwt') || ''
+  const stored = role.value ?? localStorage.getItem('role') ?? ''
+  return !!token && typeof stored === 'string' && stored.includes('ROLE_ADMIN')
+})
 
 async function loadMe() {
   const token = localStorage.getItem('jwt')
-  if (!token) { username.value = null; return }
+  if (!token) { 
+    username.value = null
+    role.value = null
+    return 
+  }
   try {
+    // восстанавливаем auth заголовок после перезагрузки страницы
+    setAuthToken(token)
     const r = await api.get('/test/me')
     username.value = r.data.username
-    localStorage.setItem('username', username.value)
+    role.value = (r.data.roles || []).join(',')
+    localStorage.setItem('username', username.value || '')
+    localStorage.setItem('role', role.value || '')
   } catch (e) {
-    username.value = null
-    localStorage.removeItem('username')
+    // Не очищаем роль/имя при временной ошибке, чтобы не скрывать Admin UI
+    // Только сбросим локальные реактивные значения, localStorage оставим
+    username.value = localStorage.getItem('username')
+    role.value = localStorage.getItem('role')
   }
 }
 
@@ -49,9 +40,105 @@ function logout() {
   setAuthToken(null)
   localStorage.removeItem('jwt')
   username.value = null
+  role.value = null
   localStorage.removeItem('username')
+  localStorage.removeItem('role')
   router.push('/auth')
 }
 
 onMounted(loadMe)
 </script>
+
+<template>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 flex items-center gap-2">
+              <h1 class="text-xl font-bold text-gray-900">Construction Monitoring</h1>
+              <span v-if="isAdmin" class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 border border-red-200">ADMIN</span>
+            </div>
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <router-link 
+                to="/" 
+                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                active-class="border-blue-500 text-gray-900"
+              >
+                Home
+              </router-link>
+              <router-link 
+                to="/projects" 
+                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                active-class="border-blue-500 text-gray-900"
+              >
+                Projects
+              </router-link>
+              <router-link 
+                to="/defects" 
+                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                active-class="border-blue-500 text-gray-900"
+              >
+                Defects
+              </router-link>
+              <router-link
+                to="/admin/users" 
+                class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-red-600 hover:text-red-700 hover:border-red-300"
+                active-class="border-red-500 text-red-900"
+              >
+                Admin
+              </router-link>
+            </div>
+          </div>
+          
+          <div class="flex items-center">
+            <template v-if="username">
+              <div class="flex items-center space-x-4">
+                <div class="text-sm">
+                  <div class="font-medium text-gray-900">{{ username }}</div>
+                  <div v-if="role" class="text-gray-500">{{ role }}</div>
+                </div>
+                <router-link
+                  to="/admin/users"
+                  class="hidden sm:inline-flex bg-gray-100 text-red-700 border border-red-200 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-200"
+                >
+                  Admin
+                </router-link>
+                <router-link
+                  to="/admin/users"
+                  class="sm:hidden bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Admin
+                </router-link>
+                <button 
+                  @click="logout"
+                  class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Logout
+                </button>
+              </div>
+            </template>
+            <template v-else>
+              <router-link 
+                to="/auth" 
+                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Login/Register
+              </router-link>
+            </template>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <router-view />
+    </main>
+  </div>
+</template>
+
+<style scoped>
+/* Custom styles if needed */
+</style>

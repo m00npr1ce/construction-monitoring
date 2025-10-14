@@ -52,6 +52,29 @@ public class SecurityConfig {
         .authorizeHttpRequests()
         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
         .requestMatchers("/api/auth/**", "/actuator/**").permitAll()
+        // Users admin-only management
+        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/users/*/role").hasAuthority("ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
+        // Projects: create/update/delete — only MANAGER or ADMIN; read — all authenticated
+        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/projects/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/projects/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/projects/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/projects/**").authenticated()
+        // Defects: creation — MANAGER or ADMIN; status updates — ENGINEER/MANAGER/ADMIN; read — all authenticated
+        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/defects/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/defects/**").hasAnyAuthority("ROLE_ENGINEER", "ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/defects/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/defects/**").authenticated()
+        // Comments & Attachments: create/delete — ENGINEER/MANAGER/ADMIN; read — all authenticated
+        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/comments/**").hasAnyAuthority("ROLE_ENGINEER", "ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/comments/**").hasAnyAuthority("ROLE_ENGINEER", "ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/comments/**").authenticated()
+        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/attachments/**").hasAnyAuthority("ROLE_ENGINEER", "ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/attachments/**").hasAnyAuthority("ROLE_ENGINEER", "ROLE_MANAGER", "ROLE_ADMIN")
+        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/attachments/**").authenticated()
+        // Reports/Analytics — просматривать всем аутентифицированным
+        .requestMatchers("/api/reports/**").authenticated()
+        // default
         .anyRequest().authenticated();
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

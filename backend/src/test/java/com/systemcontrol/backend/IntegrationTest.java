@@ -13,6 +13,7 @@ import org.springframework.http.*;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@org.springframework.test.context.ActiveProfiles("test")
 public class IntegrationTest {
 
     @LocalServerPort
@@ -33,13 +34,13 @@ public class IntegrationTest {
     ResponseEntity<String> regResp = restTemplate.postForEntity(baseUrl("/api/auth/register"), new HttpEntity<>(registerJson, jsonHeaders()), String.class);
         Assertions.assertTrue(regResp.getStatusCode().is2xxSuccessful());
 
-        // login
-    String loginJson = String.format("{\"username\":\"%s\",\"password\":\"pass123\"}", username);
-        ResponseEntity<String> loginResp = restTemplate.postForEntity(baseUrl("/api/auth/login"),
-                new HttpEntity<>(loginJson, jsonHeaders()), String.class);
-        Assertions.assertTrue(loginResp.getStatusCode().is2xxSuccessful());
-        JsonNode node = mapper.readTree(loginResp.getBody());
-        String token = node.get("token").asText();
+        // login as admin to perform privileged operations (project/defect creation)
+        String adminLoginJson = "{\"username\":\"admin\",\"password\":\"admin\"}";
+        ResponseEntity<String> adminLoginResp = restTemplate.postForEntity(baseUrl("/api/auth/login"),
+                new HttpEntity<>(adminLoginJson, jsonHeaders()), String.class);
+        Assertions.assertTrue(adminLoginResp.getStatusCode().is2xxSuccessful());
+        JsonNode adminNode = mapper.readTree(adminLoginResp.getBody());
+        String token = adminNode.get("token").asText();
 
         // create project
         String projectJson = "{\"name\":\"IT Test Project\",\"description\":\"integration test\"}";

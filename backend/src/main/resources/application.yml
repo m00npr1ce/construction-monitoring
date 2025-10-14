@@ -20,5 +20,13 @@ spring:
 
 app:
   jwt:
-    secret: change-me-to-strong-secret
+    secret: ${JWT_SECRET:very-strong-secret-key-for-production-use-only-change-this-in-production}
     expiration-ms: 86400000
+  upload:
+    dir: uploads
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
+  bootstrap:
+    admin:
+      username: ${ADMIN_USERNAME:admin}
+      password: ${ADMIN_PASSWORD:admin}
