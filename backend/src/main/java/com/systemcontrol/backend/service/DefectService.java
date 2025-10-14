@@ -52,11 +52,17 @@ public class DefectService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assignee not found");
         }
         
-        // Validate status transition
+        // Validate status transition (skip validation for managers and admins)
         if (!exist.getStatus().equals(updated.getStatus())) {
-            if (!exist.getStatus().canTransitionTo(updated.getStatus())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                    "Недопустимый переход статуса. " + exist.getStatus().getAllowedTransitionsDescription());
+            // Get current user role from Security Context
+            String userRole = getCurrentUserRole();
+            
+            // Менеджер и админ могут ставить любой статус
+            if (!"ROLE_MANAGER".equals(userRole) && !"ROLE_ADMIN".equals(userRole)) {
+                if (!exist.getStatus().canTransitionTo(updated.getStatus())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                        "Недопустимый переход статуса. " + exist.getStatus().getAllowedTransitionsDescription());
+                }
             }
         }
         
@@ -194,6 +200,17 @@ public class DefectService {
         return java.util.Arrays.stream(com.systemcontrol.backend.model.DefectStatus.values())
             .filter(status -> defect.getStatus().canTransitionTo(status))
             .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Получает роль текущего пользователя из Security Context
+     */
+    private String getCurrentUserRole() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities() != null && !auth.getAuthorities().isEmpty()) {
+            return auth.getAuthorities().iterator().next().getAuthority();
+        }
+        return "ROLE_VIEWER"; // Default role
     }
 
     public Defect get(Long id) { return defectRepository.findById(id).orElse(null); }

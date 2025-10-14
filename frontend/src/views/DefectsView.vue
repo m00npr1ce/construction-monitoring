@@ -39,6 +39,11 @@ const isManager = computed(() => {
   return role.includes('ROLE_MANAGER')
 })
 
+const isManagerOrAdmin = computed(() => {
+  const role = window.localStorage.getItem('role') || ''
+  return role.includes('ROLE_MANAGER') || role.includes('ROLE_ADMIN')
+})
+
 const query = ref('')
 const filteredDefects = computed(() => {
   let filtered = defects.value
@@ -238,6 +243,24 @@ async function cancelDefect(defectId: number) {
   }
 }
 
+async function updateDefectStatus(defectId: number, newStatus: string) {
+  try {
+    // For managers/admins: use regular update endpoint (no validation)
+    const defect = defects.value.find(d => d.id === defectId)
+    if (defect) {
+      const updatedDefect = { ...defect, status: newStatus }
+      const response = await api.put(`/defects/${defectId}`, updatedDefect)
+      
+      // Update local state
+      defect.status = newStatus
+    }
+  } catch (e: any) {
+    const errorMessage = e.response?.data?.message || 'Ошибка при обновлении статуса дефекта'
+    error.value = errorMessage
+    alert(errorMessage)
+  }
+}
+
 // Get allowed status transitions for a defect
 async function getAllowedStatuses(defectId: number) {
   try {
@@ -273,7 +296,9 @@ function getStatusLabel(status: string) {
 }
 
 function canMoveToNext(status: string) {
+  // Получаем роль из localStorage (обновляется в App.vue)
   const role = window.localStorage.getItem('role') || ''
+  console.log('canMoveToNext - status:', status, 'role:', role) // Debug log
   
   // Менеджер и админ могут переводить любой статус
   if (role.includes('ROLE_MANAGER') || role.includes('ROLE_ADMIN')) {
@@ -291,6 +316,7 @@ function canMoveToNext(status: string) {
 
 function canCancel(status: string) {
   const role = window.localStorage.getItem('role') || ''
+  console.log('canCancel - status:', status, 'role:', role) // Debug log
   
   // Менеджер и админ могут отменять любой статус
   if (role.includes('ROLE_MANAGER') || role.includes('ROLE_ADMIN')) {
@@ -490,27 +516,42 @@ onMounted(load)
                 {{ getStatusLabel(d.status) }}
               </span>
               
-              <!-- Кнопка следующего шага -->
-              <button v-if="canMoveToNext(d.status)" 
-                      @click="moveToNextStatus(d.id)"
-                      class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium">
-                {{ getNextStatusLabel(d.status) }}
-              </button>
+              <!-- Для менеджера и админа: выпадающий список со всеми статусами -->
+              <div v-if="isManagerOrAdmin">
+                <select :value="d.status" @change="updateDefectStatus(d.id, ($event.target as HTMLSelectElement).value)" 
+                        class="border p-1 rounded text-sm">
+                  <option value="NEW">Новый</option>
+                  <option value="IN_PROGRESS">В работе</option>
+                  <option value="IN_REVIEW">На проверке</option>
+                  <option value="CLOSED">Закрыт</option>
+                  <option value="CANCELLED">Отменен</option>
+                </select>
+              </div>
               
-              <!-- Кнопка отмены -->
-              <button v-if="canCancel(d.status)" 
-                      @click="cancelDefect(d.id)"
-                      class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium">
-                Отменить
-              </button>
-              
-              <!-- Статус для финальных состояний -->
-              <span v-if="d.status === 'CLOSED'" class="text-green-600 text-sm font-medium">
-                ✅ Завершен
-              </span>
-              <span v-if="d.status === 'CANCELLED'" class="text-red-600 text-sm font-medium">
-                ❌ Отменен
-              </span>
+              <!-- Для остальных ролей: кнопки -->
+              <div v-else>
+                <!-- Кнопка следующего шага -->
+                <button v-if="canMoveToNext(d.status)" 
+                        @click="moveToNextStatus(d.id)"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium">
+                  {{ getNextStatusLabel(d.status) }}
+                </button>
+                
+                <!-- Кнопка отмены -->
+                <button v-if="canCancel(d.status)" 
+                        @click="cancelDefect(d.id)"
+                        class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium">
+                  Отменить
+                </button>
+                
+                <!-- Статус для финальных состояний -->
+                <span v-if="d.status === 'CLOSED'" class="text-green-600 text-sm font-medium">
+                  ✅ Завершен
+                </span>
+                <span v-if="d.status === 'CANCELLED'" class="text-red-600 text-sm font-medium">
+                  ❌ Отменен
+                </span>
+              </div>
               <button class="text-blue-600 text-sm underline" @click="toggleExpand(d.id)">
                 {{ expandedId === d.id ? 'Свернуть' : 'Подробнее' }}
               </button>
