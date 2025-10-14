@@ -42,7 +42,7 @@ async function loadStats() {
   }
 }
 
-function createCharts() {
+async function createCharts() {
   // Destroy existing charts
   chartInstances.value.forEach(chart => chart.destroy())
   chartInstances.value = []
@@ -99,19 +99,38 @@ function createCharts() {
   // Projects Progress Bar Chart
   const progressCtx = document.getElementById('projectsProgressChart') as HTMLCanvasElement
   if (progressCtx) {
+    // Get real projects and defects data
+    const projects = await api.get('/projects').then(res => res.data)
+    const defects = await api.get('/defects').then(res => res.data)
+    
+    // Calculate progress for each project based on closed defects
+    const projectProgress = projects.map(project => {
+      const projectDefects = defects.filter(d => d.projectId === project.id)
+      const totalDefects = projectDefects.length
+      const closedDefects = projectDefects.filter(d => d.status === 'CLOSED').length
+      const progress = totalDefects > 0 ? Math.round((closedDefects / totalDefects) * 100) : 0
+      
+      return {
+        name: project.name,
+        progress: progress,
+        totalDefects: totalDefects,
+        closedDefects: closedDefects
+      }
+    })
+    
     const progressChart = new Chart(progressCtx, {
       type: 'bar',
       data: {
-        labels: ['Жилой комплекс "Северный"', 'Торговый центр "Мега"', 'Офисное здание "Бизнес-Плаза"', 'Школа №15'],
+        labels: projectProgress.map(p => p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name),
         datasets: [{
           label: 'Прогресс (%)',
-          data: [75, 60, 45, 90],
-          backgroundColor: [
-            '#3B82F6',
-            '#F59E0B', 
-            '#EF4444',
-            '#10B981'
-          ],
+          data: projectProgress.map(p => p.progress),
+          backgroundColor: projectProgress.map(p => {
+            if (p.progress >= 80) return '#10B981' // Green
+            if (p.progress >= 60) return '#3B82F6' // Blue  
+            if (p.progress >= 40) return '#F59E0B' // Yellow
+            return '#EF4444' // Red
+          }),
           borderRadius: 8,
           borderSkipped: false
         }]
@@ -157,20 +176,57 @@ function createCharts() {
   // Defects Timeline Line Chart
   const timelineCtx = document.getElementById('defectsTimelineChart') as HTMLCanvasElement
   if (timelineCtx) {
+    // Get real defects data for timeline
+    const defects = await api.get('/defects').then(res => res.data)
+    
+    // Group defects by month
+    const monthlyData = new Map()
+    const currentDate = new Date()
+    
+    // Initialize last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+      const monthKey = date.toLocaleDateString('ru', { month: 'short' })
+      monthlyData.set(monthKey, { created: 0, closed: 0 })
+    }
+    
+    // Count defects by creation and closing dates
+    defects.forEach(defect => {
+      if (defect.createdAt) {
+        const createdDate = new Date(defect.createdAt)
+        const monthKey = createdDate.toLocaleDateString('ru', { month: 'short' })
+        if (monthlyData.has(monthKey)) {
+          monthlyData.get(monthKey).created++
+        }
+      }
+      
+      if (defect.status === 'CLOSED' && defect.updatedAt) {
+        const updatedDate = new Date(defect.updatedAt)
+        const monthKey = updatedDate.toLocaleDateString('ru', { month: 'short' })
+        if (monthlyData.has(monthKey)) {
+          monthlyData.get(monthKey).closed++
+        }
+      }
+    })
+    
+    const labels = Array.from(monthlyData.keys())
+    const createdData = Array.from(monthlyData.values()).map(d => d.created)
+    const closedData = Array.from(monthlyData.values()).map(d => d.closed)
+    
     const timelineChart = new Chart(timelineCtx, {
       type: 'line',
       data: {
-        labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
+        labels: labels,
         datasets: [{
           label: 'Создано дефектов',
-          data: [12, 19, 15, 25, 22, 18],
+          data: createdData,
           borderColor: '#EF4444',
           backgroundColor: 'rgba(239, 68, 68, 0.1)',
           tension: 0.4,
           fill: true
         }, {
           label: 'Исправлено дефектов',
-          data: [8, 15, 12, 20, 18, 16],
+          data: closedData,
           borderColor: '#10B981',
           backgroundColor: 'rgba(16, 185, 129, 0.1)',
           tension: 0.4,
