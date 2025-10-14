@@ -55,4 +55,52 @@ public class DefectController {
         com.systemcontrol.backend.model.Defect updated = defectService.update(id, req);
         return ResponseEntity.ok(updated);
     }
+    
+    /**
+     * Изменяет только статус дефекта с валидацией переходов
+     */
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestBody StatusUpdateRequest request) {
+        try {
+            com.systemcontrol.backend.model.Defect updated = defectService.updateStatus(id, request.status, request.userId);
+            return ResponseEntity.ok(updated);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getReason()));
+        }
+    }
+    
+    /**
+     * Получает разрешенные переходы статуса для дефекта
+     */
+    @GetMapping("/{id}/allowed-statuses")
+    public ResponseEntity<?> getAllowedStatuses(@PathVariable Long id) {
+        try {
+            java.util.List<com.systemcontrol.backend.model.DefectStatus> allowedStatuses = defectService.getAllowedStatusTransitions(id);
+            return ResponseEntity.ok(new AllowedStatusesResponse(allowedStatuses));
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // DTOs for status management
+    public static class StatusUpdateRequest {
+        public com.systemcontrol.backend.model.DefectStatus status;
+        public Long userId;
+    }
+    
+    public static class AllowedStatusesResponse {
+        public final java.util.List<com.systemcontrol.backend.model.DefectStatus> allowedStatuses;
+        
+        public AllowedStatusesResponse(java.util.List<com.systemcontrol.backend.model.DefectStatus> allowedStatuses) {
+            this.allowedStatuses = allowedStatuses;
+        }
+    }
+    
+    public static class ErrorResponse {
+        public final String message;
+        
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
+    }
 }

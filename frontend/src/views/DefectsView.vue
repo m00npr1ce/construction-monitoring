@@ -204,14 +204,56 @@ async function deleteAttachment(attId: number, defectId: number) {
 
 async function updateDefectStatus(defectId: number, newStatus: string) {
   try {
+    // Use the new status update endpoint with validation
+    const response = await api.put(`/defects/${defectId}/status`, {
+      status: newStatus,
+      userId: 1 // TODO: Get from current user context
+    })
+    
+    // Update local state
     const defect = defects.value.find(d => d.id === defectId)
     if (defect) {
       defect.status = newStatus
-      await api.put(`/defects/${defectId}`, defect)
     }
   } catch (e: any) {
-    error.value = 'Update failed: ' + (e.response?.data || e.message || e)
+    const errorMessage = e.response?.data?.message || 'Ошибка при обновлении статуса дефекта'
+    error.value = errorMessage
+    alert(errorMessage)
   }
+}
+
+// Get allowed status transitions for a defect
+async function getAllowedStatuses(defectId: number) {
+  try {
+    const response = await api.get(`/defects/${defectId}/allowed-statuses`)
+    return response.data.allowedStatuses || []
+  } catch (e) {
+    console.error('Failed to get allowed statuses:', e)
+    return []
+  }
+}
+
+// Get allowed statuses for a defect (cached)
+const allowedStatusesCache = ref<Record<number, string[]>>({})
+
+function getAllowedStatusesForDefect(defect: any) {
+  if (allowedStatusesCache.value[defect.id]) {
+    return allowedStatusesCache.value[defect.id]
+  }
+  
+  // For now, return all statuses - will be updated when we load allowed statuses
+  return ['NEW', 'IN_PROGRESS', 'IN_REVIEW', 'CLOSED', 'CANCELLED']
+}
+
+function getStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    'NEW': 'Новый',
+    'IN_PROGRESS': 'В работе', 
+    'IN_REVIEW': 'На проверке',
+    'CLOSED': 'Закрыт',
+    'CANCELLED': 'Отменен'
+  }
+  return labels[status] || status
 }
 
 async function exportReport() {
@@ -375,11 +417,9 @@ onMounted(load)
             <div class="flex items-center gap-2">
               <select :value="d.status" @change="updateDefectStatus(d.id, ($event.target as HTMLSelectElement).value)" 
                       class="border p-1 rounded text-sm">
-                <option value="NEW">Новый</option>
-                <option value="IN_PROGRESS">В работе</option>
-                <option value="IN_REVIEW">На проверке</option>
-                <option value="CLOSED">Закрыт</option>
-                <option value="CANCELLED">Отменен</option>
+                <option v-for="status in getAllowedStatusesForDefect(d)" :key="status" :value="status">
+                  {{ getStatusLabel(status) }}
+                </option>
               </select>
               <span :class="getStatusClass(d.status)" class="px-2 py-1 rounded text-xs font-medium">
                 {{ d.status }}

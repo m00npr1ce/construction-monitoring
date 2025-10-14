@@ -52,6 +52,14 @@ public class DefectService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "assignee not found");
         }
         
+        // Validate status transition
+        if (!exist.getStatus().equals(updated.getStatus())) {
+            if (!exist.getStatus().canTransitionTo(updated.getStatus())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Недопустимый переход статуса. " + exist.getStatus().getAllowedTransitionsDescription());
+            }
+        }
+        
         // Record changes in history
         if (!exist.getTitle().equals(updated.getTitle())) {
             defectHistoryService.recordChange(id, updated.getAssigneeId() != null ? updated.getAssigneeId() : 0L, "title", exist.getTitle(), updated.getTitle(), "UPDATED");
@@ -77,6 +85,39 @@ public class DefectService {
         exist.setUpdatedAt(java.time.Instant.now());
         return defectRepository.save(exist);
     }
+    /**
+     * Изменяет только статус дефекта с валидацией переходов
+     */
+    public Defect updateStatus(Long id, com.systemcontrol.backend.model.DefectStatus newStatus, Long userId) {
+        Defect exist = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
+        
+        // Validate status transition
+        if (!exist.getStatus().canTransitionTo(newStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Недопустимый переход статуса. " + exist.getStatus().getAllowedTransitionsDescription());
+        }
+        
+        // Record status change in history
+        defectHistoryService.recordChange(id, userId != null ? userId : 0L, "status", 
+            exist.getStatus().toString(), newStatus.toString(), "STATUS_CHANGED");
+        
+        // Update status
+        exist.setStatus(newStatus);
+        exist.setUpdatedAt(java.time.Instant.now());
+        
+        return defectRepository.save(exist);
+    }
+    
+    /**
+     * Получает разрешенные переходы для дефекта
+     */
+    public java.util.List<com.systemcontrol.backend.model.DefectStatus> getAllowedStatusTransitions(Long id) {
+        Defect defect = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
+        return java.util.Arrays.stream(com.systemcontrol.backend.model.DefectStatus.values())
+            .filter(status -> defect.getStatus().canTransitionTo(status))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
     public Defect get(Long id) { return defectRepository.findById(id).orElse(null); }
     public List<Defect> listByProject(Long projectId) { return defectRepository.findByProjectId(projectId); }
     public List<Defect> listAll() { return defectRepository.findAll(); }
