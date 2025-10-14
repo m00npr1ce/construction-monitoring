@@ -111,8 +111,33 @@ public class DefectService {
     /**
      * Переводит дефект к следующему статусу в workflow
      */
-    public Defect moveToNextStatus(Long id, Long userId) {
+    public Defect moveToNextStatus(Long id, Long userId, String userRole) {
         Defect defect = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
+        
+        // Менеджер может ставить любой статус
+        if ("ROLE_MANAGER".equals(userRole) || "ROLE_ADMIN".equals(userRole)) {
+            com.systemcontrol.backend.model.DefectStatus nextStatus = defect.getStatus().getNextStatus();
+            if (nextStatus == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Дефект уже в финальном статусе: " + defect.getStatus());
+            }
+            
+            // Record status change in history
+            defectHistoryService.recordChange(id, userId != null ? userId : 0L, "status", 
+                defect.getStatus().toString(), nextStatus.toString(), "STATUS_CHANGED");
+            
+            // Update status
+            defect.setStatus(nextStatus);
+            defect.setUpdatedAt(java.time.Instant.now());
+            
+            return defectRepository.save(defect);
+        }
+        
+        // Для инженера: не может переводить из "На проверке" в "Закрыт"
+        if ("ROLE_ENGINEER".equals(userRole) && defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.IN_REVIEW) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
+                "Инженер не может закрывать дефекты. Обратитесь к менеджеру.");
+        }
         
         if (!defect.getStatus().canMoveToNext()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
@@ -135,13 +160,19 @@ public class DefectService {
     /**
      * Отменяет дефект
      */
-    public Defect cancelDefect(Long id, Long userId) {
+    public Defect cancelDefect(Long id, Long userId, String userRole) {
         Defect defect = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
         
         if (defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.CLOSED || 
             defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
                 "Дефект уже в финальном статусе: " + defect.getStatus());
+        }
+        
+        // Для инженера: не может отменять дефекты в статусе "На проверке"
+        if ("ROLE_ENGINEER".equals(userRole) && defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.IN_REVIEW) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
+                "Инженер не может отменять дефекты на проверке. Обратитесь к менеджеру.");
         }
         
         // Record status change in history

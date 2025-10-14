@@ -273,20 +273,58 @@ function getStatusLabel(status: string) {
 }
 
 function canMoveToNext(status: string) {
+  const role = window.localStorage.getItem('role') || ''
+  
+  // Менеджер и админ могут переводить любой статус
+  if (role.includes('ROLE_MANAGER') || role.includes('ROLE_ADMIN')) {
+    return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
+  }
+  
+  // Инженер не может переводить из "На проверке"
+  if (role.includes('ROLE_ENGINEER')) {
+    return status === 'NEW' || status === 'IN_PROGRESS'
+  }
+  
+  // Остальные роли следуют строгому workflow
   return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
 }
 
 function canCancel(status: string) {
-  return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
+  const role = window.localStorage.getItem('role') || ''
+  
+  // Менеджер и админ могут отменять любой статус
+  if (role.includes('ROLE_MANAGER') || role.includes('ROLE_ADMIN')) {
+    return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
+  }
+  
+  // Инженер не может отменять дефекты "На проверке"
+  if (role.includes('ROLE_ENGINEER')) {
+    return status === 'NEW' || status === 'IN_PROGRESS'
+  }
+  
+  // Остальные роли не могут отменять
+  return false
 }
 
 function getNextStatusLabel(currentStatus: string) {
-  const nextLabels: Record<string, string> = {
+  const role = window.localStorage.getItem('role') || ''
+  
+  // Для инженера: не может закрывать дефекты
+  if (role.includes('ROLE_ENGINEER')) {
+    const engineerLabels: Record<string, string> = {
+      'NEW': 'Взять в работу',
+      'IN_PROGRESS': 'Отправить на проверку'
+    }
+    return engineerLabels[currentStatus] || 'Следующий шаг'
+  }
+  
+  // Для менеджера и админа: полные права
+  const fullLabels: Record<string, string> = {
     'NEW': 'Взять в работу',
     'IN_PROGRESS': 'Отправить на проверку',
     'IN_REVIEW': 'Закрыть'
   }
-  return nextLabels[currentStatus] || 'Следующий шаг'
+  return fullLabels[currentStatus] || 'Следующий шаг'
 }
 
 async function exportReport() {

@@ -75,7 +75,9 @@ public class DefectController {
     @PutMapping("/{id}/next-status")
     public ResponseEntity<?> moveToNextStatus(@PathVariable Long id, @RequestBody NextStatusRequest request) {
         try {
-            com.systemcontrol.backend.model.Defect updated = defectService.moveToNextStatus(id, request.userId);
+            // Получаем роль пользователя из Security Context
+            String userRole = getCurrentUserRole();
+            com.systemcontrol.backend.model.Defect updated = defectService.moveToNextStatus(id, request.userId, userRole);
             return ResponseEntity.ok(updated);
         } catch (org.springframework.web.server.ResponseStatusException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getReason()));
@@ -88,11 +90,24 @@ public class DefectController {
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelDefect(@PathVariable Long id, @RequestBody CancelRequest request) {
         try {
-            com.systemcontrol.backend.model.Defect updated = defectService.cancelDefect(id, request.userId);
+            // Получаем роль пользователя из Security Context
+            String userRole = getCurrentUserRole();
+            com.systemcontrol.backend.model.Defect updated = defectService.cancelDefect(id, request.userId, userRole);
             return ResponseEntity.ok(updated);
         } catch (org.springframework.web.server.ResponseStatusException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getReason()));
         }
+    }
+    
+    /**
+     * Получает роль текущего пользователя из Security Context
+     */
+    private String getCurrentUserRole() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities() != null && !auth.getAuthorities().isEmpty()) {
+            return auth.getAuthorities().iterator().next().getAuthority();
+        }
+        return "ROLE_VIEWER"; // Default role
     }
     
     /**
