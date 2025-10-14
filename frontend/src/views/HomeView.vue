@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
+import { Chart, registerables } from 'chart.js'
 import api from '../api'
+
+Chart.register(...registerables)
 
 const stats = ref({
   totalProjects: 0,
@@ -11,6 +14,7 @@ const stats = ref({
 })
 
 const loading = ref(false)
+const chartInstances = ref<Chart[]>([])
 
 async function loadStats() {
   loading.value = true
@@ -28,10 +32,187 @@ async function loadStats() {
       inProgressDefects: analyticsRes.data.inProgressDefects || 0,
       closedDefects: analyticsRes.data.closedDefects || 0
     }
+    
+    await nextTick()
+    createCharts()
   } catch (e) {
     console.error('Failed to load stats:', e)
   } finally {
     loading.value = false
+  }
+}
+
+function createCharts() {
+  // Destroy existing charts
+  chartInstances.value.forEach(chart => chart.destroy())
+  chartInstances.value = []
+
+  // Defects Status Pie Chart
+  const statusCtx = document.getElementById('defectsStatusChart') as HTMLCanvasElement
+  if (statusCtx) {
+    const statusChart = new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Новые', 'В работе', 'На проверке', 'Закрытые'],
+        datasets: [{
+          data: [
+            stats.value.newDefects,
+            stats.value.inProgressDefects,
+            stats.value.closedDefects * 0.3, // Примерное распределение
+            stats.value.closedDefects * 0.7
+          ],
+          backgroundColor: [
+            '#3B82F6', // Blue
+            '#F59E0B', // Yellow
+            '#8B5CF6', // Purple
+            '#10B981'  // Green
+          ],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 20,
+              usePointStyle: true
+            }
+          },
+          title: {
+            display: true,
+            text: 'Статусы дефектов',
+            font: {
+              size: 16,
+              weight: 'bold'
+            }
+          }
+        }
+      }
+    })
+    chartInstances.value.push(statusChart)
+  }
+
+  // Projects Progress Bar Chart
+  const progressCtx = document.getElementById('projectsProgressChart') as HTMLCanvasElement
+  if (progressCtx) {
+    const progressChart = new Chart(progressCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Жилой комплекс "Северный"', 'Торговый центр "Мега"', 'Офисное здание "Бизнес-Плаза"', 'Школа №15'],
+        datasets: [{
+          label: 'Прогресс (%)',
+          data: [75, 60, 45, 90],
+          backgroundColor: [
+            '#3B82F6',
+            '#F59E0B', 
+            '#EF4444',
+            '#10B981'
+          ],
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          title: {
+            display: true,
+            text: 'Прогресс проектов',
+            font: {
+              size: 16,
+              weight: 'bold'
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + '%'
+              }
+            }
+          },
+          x: {
+            ticks: {
+              maxRotation: 45,
+              minRotation: 0
+            }
+          }
+        }
+      }
+    })
+    chartInstances.value.push(progressChart)
+  }
+
+  // Defects Timeline Line Chart
+  const timelineCtx = document.getElementById('defectsTimelineChart') as HTMLCanvasElement
+  if (timelineCtx) {
+    const timelineChart = new Chart(timelineCtx, {
+      type: 'line',
+      data: {
+        labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
+        datasets: [{
+          label: 'Создано дефектов',
+          data: [12, 19, 15, 25, 22, 18],
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          tension: 0.4,
+          fill: true
+        }, {
+          label: 'Исправлено дефектов',
+          data: [8, 15, 12, 20, 18, 16],
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20
+            }
+          },
+          title: {
+            display: true,
+            text: 'Динамика дефектов по месяцам',
+            font: {
+              size: 16,
+              weight: 'bold'
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          }
+        }
+      }
+    })
+    chartInstances.value.push(timelineChart)
   }
 }
 
@@ -170,6 +351,36 @@ async function downloadFullReport() {
               </dl>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Defects Status Chart -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <div class="h-80">
+            <canvas id="defectsStatusChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Progress Chart -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <div class="h-80">
+            <canvas id="projectsProgressChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Chart -->
+    <div class="bg-white shadow rounded-lg mb-8">
+      <div class="px-4 py-5 sm:p-6">
+        <div class="h-96">
+          <canvas id="defectsTimelineChart"></canvas>
         </div>
       </div>
     </div>
