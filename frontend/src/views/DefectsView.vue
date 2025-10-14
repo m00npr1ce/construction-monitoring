@@ -317,17 +317,13 @@ function canMoveToNext(status: string) {
 function canCancel(status: string) {
   const role = window.localStorage.getItem('role') || ''
   console.log('canCancel - status:', status, 'role:', role) // Debug log
-  
-  // Менеджер и админ могут отменять любой статус
+
+  // Только менеджер и админ могут отменять дефекты
   if (role.includes('ROLE_MANAGER') || role.includes('ROLE_ADMIN')) {
     return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
   }
-  
-  // Инженер не может отменять дефекты "На проверке"
-  if (role.includes('ROLE_ENGINEER')) {
-    return status === 'NEW' || status === 'IN_PROGRESS'
-  }
-  
+
+  // Инженер НЕ может отменять дефекты вообще
   // Остальные роли не могут отменять
   return false
 }

@@ -175,10 +175,10 @@ public class DefectService {
                 "Дефект уже в финальном статусе: " + defect.getStatus());
         }
         
-        // Для инженера: не может отменять дефекты в статусе "На проверке"
-        if ("ROLE_ENGINEER".equals(userRole) && defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.IN_REVIEW) {
+        // Только менеджер и админ могут отменять дефекты
+        if (!"ROLE_MANAGER".equals(userRole) && !"ROLE_ADMIN".equals(userRole)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
-                "Инженер не может отменять дефекты на проверке. Обратитесь к менеджеру.");
+                "Только менеджер или администратор могут отменять дефекты.");
         }
         
         // Record status change in history
