@@ -202,21 +202,37 @@ async function deleteAttachment(attId: number, defectId: number) {
   } catch (e) { /* ignore */ }
 }
 
-async function updateDefectStatus(defectId: number, newStatus: string) {
+async function moveToNextStatus(defectId: number) {
   try {
-    // Use the new status update endpoint with validation
-    const response = await api.put(`/defects/${defectId}/status`, {
-      status: newStatus,
+    const response = await api.put(`/defects/${defectId}/next-status`, {
       userId: 1 // TODO: Get from current user context
     })
     
     // Update local state
     const defect = defects.value.find(d => d.id === defectId)
     if (defect) {
-      defect.status = newStatus
+      defect.status = response.data.status
     }
   } catch (e: any) {
-    const errorMessage = e.response?.data?.message || 'Ошибка при обновлении статуса дефекта'
+    const errorMessage = e.response?.data?.message || 'Ошибка при изменении статуса дефекта'
+    error.value = errorMessage
+    alert(errorMessage)
+  }
+}
+
+async function cancelDefect(defectId: number) {
+  try {
+    const response = await api.put(`/defects/${defectId}/cancel`, {
+      userId: 1 // TODO: Get from current user context
+    })
+    
+    // Update local state
+    const defect = defects.value.find(d => d.id === defectId)
+    if (defect) {
+      defect.status = response.data.status
+    }
+  } catch (e: any) {
+    const errorMessage = e.response?.data?.message || 'Ошибка при отмене дефекта'
     error.value = errorMessage
     alert(errorMessage)
   }
@@ -254,6 +270,23 @@ function getStatusLabel(status: string) {
     'CANCELLED': 'Отменен'
   }
   return labels[status] || status
+}
+
+function canMoveToNext(status: string) {
+  return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
+}
+
+function canCancel(status: string) {
+  return status === 'NEW' || status === 'IN_PROGRESS' || status === 'IN_REVIEW'
+}
+
+function getNextStatusLabel(currentStatus: string) {
+  const nextLabels: Record<string, string> = {
+    'NEW': 'Взять в работу',
+    'IN_PROGRESS': 'Отправить на проверку',
+    'IN_REVIEW': 'Закрыть'
+  }
+  return nextLabels[currentStatus] || 'Следующий шаг'
 }
 
 async function exportReport() {
@@ -415,14 +448,30 @@ onMounted(load)
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <select :value="d.status" @change="updateDefectStatus(d.id, ($event.target as HTMLSelectElement).value)" 
-                      class="border p-1 rounded text-sm">
-                <option v-for="status in getAllowedStatusesForDefect(d)" :key="status" :value="status">
-                  {{ getStatusLabel(status) }}
-                </option>
-              </select>
               <span :class="getStatusClass(d.status)" class="px-2 py-1 rounded text-xs font-medium">
-                {{ d.status }}
+                {{ getStatusLabel(d.status) }}
+              </span>
+              
+              <!-- Кнопка следующего шага -->
+              <button v-if="canMoveToNext(d.status)" 
+                      @click="moveToNextStatus(d.id)"
+                      class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium">
+                {{ getNextStatusLabel(d.status) }}
+              </button>
+              
+              <!-- Кнопка отмены -->
+              <button v-if="canCancel(d.status)" 
+                      @click="cancelDefect(d.id)"
+                      class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium">
+                Отменить
+              </button>
+              
+              <!-- Статус для финальных состояний -->
+              <span v-if="d.status === 'CLOSED'" class="text-green-600 text-sm font-medium">
+                ✅ Завершен
+              </span>
+              <span v-if="d.status === 'CANCELLED'" class="text-red-600 text-sm font-medium">
+                ❌ Отменен
               </span>
               <button class="text-blue-600 text-sm underline" @click="toggleExpand(d.id)">
                 {{ expandedId === d.id ? 'Свернуть' : 'Подробнее' }}

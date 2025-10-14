@@ -109,6 +109,53 @@ public class DefectService {
     }
     
     /**
+     * Переводит дефект к следующему статусу в workflow
+     */
+    public Defect moveToNextStatus(Long id, Long userId) {
+        Defect defect = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
+        
+        if (!defect.getStatus().canMoveToNext()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Дефект уже в финальном статусе: " + defect.getStatus());
+        }
+        
+        com.systemcontrol.backend.model.DefectStatus nextStatus = defect.getStatus().getNextStatus();
+        
+        // Record status change in history
+        defectHistoryService.recordChange(id, userId != null ? userId : 0L, "status", 
+            defect.getStatus().toString(), nextStatus.toString(), "STATUS_CHANGED");
+        
+        // Update status
+        defect.setStatus(nextStatus);
+        defect.setUpdatedAt(java.time.Instant.now());
+        
+        return defectRepository.save(defect);
+    }
+    
+    /**
+     * Отменяет дефект
+     */
+    public Defect cancelDefect(Long id, Long userId) {
+        Defect defect = defectRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "defect not found"));
+        
+        if (defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.CLOSED || 
+            defect.getStatus() == com.systemcontrol.backend.model.DefectStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Дефект уже в финальном статусе: " + defect.getStatus());
+        }
+        
+        // Record status change in history
+        defectHistoryService.recordChange(id, userId != null ? userId : 0L, "status", 
+            defect.getStatus().toString(), com.systemcontrol.backend.model.DefectStatus.CANCELLED.toString(), "CANCELLED");
+        
+        // Update status
+        defect.setStatus(com.systemcontrol.backend.model.DefectStatus.CANCELLED);
+        defect.setUpdatedAt(java.time.Instant.now());
+        
+        return defectRepository.save(defect);
+    }
+    
+    /**
      * Получает разрешенные переходы для дефекта
      */
     public java.util.List<com.systemcontrol.backend.model.DefectStatus> getAllowedStatusTransitions(Long id) {

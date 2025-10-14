@@ -70,6 +70,32 @@ public class DefectController {
     }
     
     /**
+     * Переводит дефект к следующему статусу в workflow
+     */
+    @PutMapping("/{id}/next-status")
+    public ResponseEntity<?> moveToNextStatus(@PathVariable Long id, @RequestBody NextStatusRequest request) {
+        try {
+            com.systemcontrol.backend.model.Defect updated = defectService.moveToNextStatus(id, request.userId);
+            return ResponseEntity.ok(updated);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getReason()));
+        }
+    }
+    
+    /**
+     * Отменяет дефект
+     */
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelDefect(@PathVariable Long id, @RequestBody CancelRequest request) {
+        try {
+            com.systemcontrol.backend.model.Defect updated = defectService.cancelDefect(id, request.userId);
+            return ResponseEntity.ok(updated);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getReason()));
+        }
+    }
+    
+    /**
      * Получает разрешенные переходы статуса для дефекта
      */
     @GetMapping("/{id}/allowed-statuses")
@@ -85,6 +111,14 @@ public class DefectController {
     // DTOs for status management
     public static class StatusUpdateRequest {
         public com.systemcontrol.backend.model.DefectStatus status;
+        public Long userId;
+    }
+    
+    public static class NextStatusRequest {
+        public Long userId;
+    }
+    
+    public static class CancelRequest {
         public Long userId;
     }
     

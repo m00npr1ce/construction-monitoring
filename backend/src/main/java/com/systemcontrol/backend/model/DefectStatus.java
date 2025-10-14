@@ -9,12 +9,12 @@ public enum DefectStatus {
     CLOSED,
     CANCELLED;
     
-    // Определяем разрешенные переходы для каждого статуса
+    // Определяем разрешенные переходы для каждого статуса (только вперед)
     private static final Set<DefectStatus> NEW_ALLOWED = Set.of(IN_PROGRESS, CANCELLED);
     private static final Set<DefectStatus> IN_PROGRESS_ALLOWED = Set.of(IN_REVIEW, CANCELLED);
-    private static final Set<DefectStatus> IN_REVIEW_ALLOWED = Set.of(CLOSED, IN_PROGRESS);
-    private static final Set<DefectStatus> CLOSED_ALLOWED = Set.of(IN_REVIEW); // Можно вернуть на проверку
-    private static final Set<DefectStatus> CANCELLED_ALLOWED = Set.of(NEW); // Можно вернуть в новое
+    private static final Set<DefectStatus> IN_REVIEW_ALLOWED = Set.of(CLOSED);
+    private static final Set<DefectStatus> CLOSED_ALLOWED = Set.of(); // Закрытые дефекты нельзя изменить
+    private static final Set<DefectStatus> CANCELLED_ALLOWED = Set.of(); // Отмененные дефекты нельзя изменить
     
     /**
      * Проверяет, разрешен ли переход от текущего статуса к новому
@@ -39,9 +39,28 @@ public enum DefectStatus {
         return switch (this) {
             case NEW -> "Можно перевести в: В работе, Отменена";
             case IN_PROGRESS -> "Можно перевести в: На проверке, Отменена";
-            case IN_REVIEW -> "Можно перевести в: Закрыта, В работе";
-            case CLOSED -> "Можно перевести в: На проверке";
-            case CANCELLED -> "Можно перевести в: Новая";
+            case IN_REVIEW -> "Можно перевести в: Закрыта";
+            case CLOSED -> "Закрытые дефекты нельзя изменить";
+            case CANCELLED -> "Отмененные дефекты нельзя изменить";
         };
+    }
+    
+    /**
+     * Возвращает следующий статус в workflow
+     */
+    public DefectStatus getNextStatus() {
+        return switch (this) {
+            case NEW -> IN_PROGRESS;
+            case IN_PROGRESS -> IN_REVIEW;
+            case IN_REVIEW -> CLOSED;
+            case CLOSED, CANCELLED -> null; // Финальные статусы
+        };
+    }
+    
+    /**
+     * Проверяет, можно ли перейти к следующему статусу
+     */
+    public boolean canMoveToNext() {
+        return getNextStatus() != null;
     }
 }
